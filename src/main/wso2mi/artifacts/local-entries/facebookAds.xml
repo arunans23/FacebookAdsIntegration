@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<localEntry key="facebookAds" xmlns="http://ws.apache.org/ns/synapse">
+  <facebookAds.init>
+    <connectionType>facebookAds</connectionType>
+    <name>facebookAds</name>
+    <base>https://graph.facebook.com/v20.0</base>
+    <accessToken>ADD_TOKEN_HERE</accessToken>
+  </facebookAds.init>
+</localEntry>

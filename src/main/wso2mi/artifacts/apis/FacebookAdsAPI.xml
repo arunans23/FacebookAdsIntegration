@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api name="FacebookAdsAPI" context="/facebookads" xmlns="http://ws.apache.org/ns/synapse">
+	<resource methods="POST" uri-template="/createAudience">
+		<inSequence>
+			<facebookAds.createCustomAudience configKey="facebookAds">
+				<adAccountId>{json-eval($.ad_id)}</adAccountId>
+				<properties>{json-eval($.properties)}</properties>
+			</facebookAds.createCustomAudience>
+			<respond />
+		</inSequence>
+		<faultSequence>
+		</faultSequence>
+	</resource>
+	<resource methods="POST" uri-template="/addUsers">
+		<inSequence>
+			<property name="messageType" value="application/json" scope="axis2" />
+			<!-- Extract the Custom Audience ID from the incoming JSON payload -->
+			<property name="customAudienceId" expression="json-eval($.audience)" scope="default"
+				type="STRING" />
+			<!-- Extract the users array from the incoming JSON payload -->
+			<property name="users" expression="json-eval($.users)" scope="default" type="STRING" />
+			<!-- Use the Script Mediator to hash user data -->
+			<script language="js"><![CDATA[
+		    load("nashorn:mozilla_compat.js");
+            importPackage(org.apache.commons.codec.digest);
+            // Retrieve the users JSON array from the message context
+            var usersJson = mc.getProperty("users");
+            var users = JSON.parse(usersJson);
+            // Initialize the main object with the desired structure
+            var result = {
+                "payload": {
+                    "schema": "EMAIL_SHA256",
+                    "data": []
+                }
+            };
+            // Function to compute SHA-256 hash and encode it in hexadecimal
+            function sha256(s) {
+                return String(DigestUtils.sha256Hex(String(s)));
+            }
+            // Iterate over each user and hash the email
+            for (var i = 0; i < users.length; i++) {
+                var user = users[i];
+                if (user.email) {
+                    // Hash the email and add it to the data array
+                    result.payload.data.push(sha256(user.email));
+                } else {
+                    // If email is missing, add null or handle as needed
+                    result.payload.data.push(null);
+                }
+            }
+            // Set the result back to the message context as a JavaScript object
+            mc.setProperty("hashedUsers", JSON.stringify(result));
+        ]]></script>
+			<!-- Construct the properties element with hashed user data -->
+			<property name="properties" expression="get-property('hashedUsers')" type="JSON" />
+			<!-- Invoke the Facebook Ads API to add users to the custom audience -->
+			<facebookAds.addUsersToAudience configKey="facebookAds">
+				<customAudienceId>{get-property('customAudienceId')}</customAudienceId>
+				<properties>{get-property('properties')}</properties>
+			</facebookAds.addUsersToAudience>
+			<respond />
+		</inSequence>
+
+		<faultSequence>
+		</faultSequence>
+	</resource>
+	<resource methods="POST" uri-template="/removeUsers">
+		<inSequence>
+			<property name="messageType" value="application/json" scope="axis2" />
+			<!-- Extract the Custom Audience ID from the incoming JSON payload -->
+			<property name="customAudienceId" expression="json-eval($.audience)" scope="default"
+				type="STRING" />
+			<!-- Extract the users array from the incoming JSON payload -->
+			<property name="users" expression="json-eval($.users)" scope="default" type="STRING" />
+			<!-- Use the Script Mediator to hash user data -->
+			<script language="js"><![CDATA[
+		    load("nashorn:mozilla_compat.js");
+            importPackage(org.apache.commons.codec.digest);
+            // Retrieve the users JSON array from the message context
+            var usersJson = mc.getProperty("users");
+            var users = JSON.parse(usersJson);
+            // Initialize the main object with the desired structure
+            var result = {
+                "payload": {
+                    "schema": "EMAIL_SHA256",
+                    "data": []
+                }
+            };
+            // Function to compute SHA-256 hash and encode it in hexadecimal
+            function sha256(s) {
+                return String(DigestUtils.sha256Hex(String(s)));
+            }
+            // Iterate over each user and hash the email
+            for (var i = 0; i < users.length; i++) {
+                var user = users[i];
+                if (user.email) {
+                    // Hash the email and add it to the data array
+                    result.payload.data.push(sha256(user.email));
+                } else {
+                    // If email is missing, add null or handle as needed
+                    result.payload.data.push(null);
+                }
+            }
+            // Set the result back to the message context as a JavaScript object
+            mc.setProperty("hashedUsers", JSON.stringify(result));
+        ]]></script>
+			<!-- Construct the properties element with hashed user data -->
+			<property name="properties" expression="get-property('hashedUsers')" type="JSON" />
+			<!-- Invoke the Facebook Ads API to add users to the custom audience -->
+			<facebookAds.removeUsersFromAudience configKey="facebookAds">
+				<customAudienceId>{get-property('customAudienceId')}</customAudienceId>
+				<properties>{get-property('properties')}</properties>
+			</facebookAds.removeUsersFromAudience>
+			<respond />
+		</inSequence>
+
+		<faultSequence>
+		</faultSequence>
+	</resource>
+</api>
